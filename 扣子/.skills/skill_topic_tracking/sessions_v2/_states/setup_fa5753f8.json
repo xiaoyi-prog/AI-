@@ -1,0 +1,19 @@
+{
+  "schema": "topic_tracking.state.v2",
+  "token": "setup_fa5753f8",
+  "setup_token": "setup_fa5753f8",
+  "flow": "setup",
+  "current_step": "S2",
+  "topic": "AI 行业动态",
+  "tracking_dir": "/Coze/Drive/扣子/热点资讯追踪/AI 行业动态",
+  "session_dir": "/Coze/Drive/扣子/.skills/skill_topic_tracking/sessions_v2/setup_fa5753f8",
+  "quick": false,
+  "legacy_upgrade": false,
+  "completed_steps": [
+    "S1"
+  ],
+  "created_at": "2026-11-18T13:32:24.791899",
+  "contract_path": "/Coze/Drive/扣子/热点资讯追踪/AI 行业动态/tracking_contract_v2.json",
+  "empty_silent": true,
+  "updated_at": "2026-11-18T13:33:23.320730"
+}

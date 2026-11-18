@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户旅程图 — PharmaRAG RAG Copilot</title>
+<style>
+:root {
+  --c-primary: #0d6e6e;
+  --c-primary-light: #14a098;
+  --c-primary-dark: #074747;
+  --c-accent: #e94560;
+  --c-warning: #f59f00;
+  --c-success: #2b8a3e;
+  --c-info: #1c7ed6;
+  --c-bg: #f0f2f5;
+  --c-surface: #ffffff;
+  --c-surface-alt: #f8f9fa;
+  --c-text: #1a1a2e;
+  --c-text-muted: #6c757d;
+  --c-border: #e0e3e7;
+  --c-border-light: #eef0f3;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --stage-colors: #0c8599, #1971c2, #2b8a3e, #f59f00, #e8590c, #c2255c;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1400px; margin: 0 auto; padding: 32px 24px 64px; }
+
+/* Header */
+.page-header {
+  background: var(--c-primary-dark);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-md);
+}
+.page-header h1 { font-size: 22px; margin-bottom: 6px; }
+.page-header p { font-size: 14px; opacity: .8; }
+.page-header .header-tags {
+  display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+}
+.header-tag {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.15);
+}
+
+/* Persona Selector */
+.persona-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.persona-card {
+  flex: 1;
+  min-width: 200px;
+  background: var(--c-surface);
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.persona-card:hover { border-color: var(--c-primary-light); }
+.persona-card.active { border-color: var(--c-primary); background: #f0fcfc; }
+.persona-card .pc-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #fff;
+  flex-shrink: 0;
+}
+.persona-card .pc-info h3 { font-size: 15px; margin-bottom: 2px; }
+.persona-card .pc-info p { font-size: 12px; color: var(--c-text-muted); }
+
+/* Journey Container */
+.journey-container {
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+/* Stage Headers */
+.stage-headers {
+  display: grid;
+  grid-template-columns: 140px repeat(6, 1fr);
+  gap: 2px;
+  margin-bottom: 0;
+  min-width: 1000px;
+}
+.stage-header {
+  padding: 14px 12px;
+  text-align: center;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  color: #fff;
+}
+.stage-header .sh-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  margin-bottom: 6px;
+}
+.stage-header .sh-name { font-size: 13px; font-weight: 600; }
+.stage-header .sh-time { font-size: 11px; opacity: .8; margin-top: 2px; }
+
+/* Journey Rows */
+.journey-row-label {
+  padding: 16px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--c-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-right: 2px solid var(--c-border);
+  background: var(--c-surface-alt);
+}
+.journey-grid {
+  display: grid;
+  grid-template-columns: 140px repeat(6, 1fr);
+  gap: 2px;
+  min-width: 1000px;
+}
+.journey-cell {
+  padding: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-light);
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.journey-cell.row-actions { background: #f0fcfc; }
+.journey-cell.row-emotion { background: #fff8dc; }
+.journey-cell.row-pain { background: #fff5f5; }
+.journey-cell.row-opp { background: #ebfbee; }
+
+.journey-cell .cell-icon { font-size: 16px; }
+.journey-cell .cell-text { color: var(--c-text); }
+.journey-cell .cell-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  display: inline-block;
+  width: fit-content;
+}
+
+/* Emotion Bar */
+.emotion-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.emotion-icon { font-size: 20px; }
+.emotion-track {
+  flex: 1;
+  height: 6px;
+  background: var(--c-border);
+  border-radius: 3px;
+  position: relative;
+}
+.emotion-fill {
+  position: absolute;
+  height: 100%;
+  border-radius: 3px;
+}
+
+/* Touchpoints */
+.touchpoint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.touchpoint {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: var(--c-surface-alt);
+  border-radius: 4px;
+  border-left: 3px solid var(--c-primary-light);
+}
+
+/* Summary Section */
+.summary-section {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.summary-card {
+  background: var(--c-surface);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border-top: 4px solid var(--c-primary);
+}
+.summary-card h4 { font-size: 15px; margin-bottom: 12px; }
+.summary-card ul { list-style: none; }
+.summary-card li {
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--c-border-light);
+  display: flex;
+  gap: 8px;
+}
+.summary-card li:last-child { border-bottom: none; }
+.summary-card li::before { content: "▸"; color: var(--c-primary); flex-shrink: 0; }
+
+/* KPI Strip */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+.kpi-item {
+  background: var(--c-surface);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.kpi-item .kpi-val { font-size: 28px; font-weight: 700; color: var(--c-primary); }
+.kpi-item .kpi-lbl { font-size: 12px; color: var(--c-text-muted); margin-top: 4px; }
+
+/* Footer */
+.page-footer {
+  margin-top: 32px;
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+
+/* Print */
+@media print {
+  body { background: #fff; }
+  .journey-container { overflow: visible; }
+  .stage-headers, .journey-grid { min-width: auto; }
+}
+@media (max-width: 768px) {
+  .page { padding: 16px 12px; }
+  .persona-bar { flex-direction: column; }
+  .journey-container { padding: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="page-header">
+    <h1>用户旅程图 — PharmaRAG 研发知识库 RAG Copilot</h1>
+    <p>覆盖研发科学家、质量保证专员、法规事务专员三角色，从发现到深度使用的全链路体验地图</p>
+    <div class="header-tags">
+      <span class="header-tag">6 阶段</span>
+      <span class="header-tag">3 角色</span>
+      <span class="header-tag">5 维度</span>
+      <span class="header-tag">21 关键触点</span>
+    </div>
+  </header>
+
+  <!-- Persona Cards -->
+  <div class="persona-bar">
+    <div class="persona-card active" data-persona="rd">
+      <div class="pc-avatar" style="background:#0c8599">DC</div>
+      <div class="pc-info">
+        <h3>Dr. Chen · 研发科学家</h3>
+        <p>查询 SOP、实验方案、公开文献</p>
+      </div>
+    </div>
+    <div class="persona-card" data-persona="qa">
+      <div class="pc-avatar" style="background:#d9480f">QA</div>
+      <div class="pc-info">
+        <h3>QA Lin · 质量保证专员</h3>
+        <p>查询 GMP 规范、偏差处理流程</p>
+      </div>
+    </div>
+    <div class="persona-card" data-persona="reg">
+      <div class="pc-avatar" style="background:#1971c2">RG</div>
+      <div class="pc-info">
+        <h3>Reg Wang · 法规事务专员</h3>
+        <p>查询 ICH/FDA 指南、注册申报</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Journey Map -->
+  <div class="journey-container">
+    <!-- Stage Headers -->
+    <div class="stage-headers">
+      <div></div>
+      <div class="stage-header" style="background:#0c8599"><div class="sh-num">1</div><div class="sh-name">发现</div><div class="sh-time">首次接触</div></div>
+      <div class="stage-header" style="background:#1971c2"><div class="sh-num">2</div><div class="sh-name">上手</div><div class="sh-time">第 1 天</div></div>
+      <div class="stage-header" style="background:#2b8a3e"><div class="sh-num">3</div><div class="sh-name">首次提问</div><div class="sh-time">第 1-3 天</div></div>
+      <div class="stage-header" style="background:#f59f00"><div class="sh-num">4</div><div class="sh-name">日常使用</div><div class="sh-time">第 1-4 周</div></div>
+      <div class="stage-header" style="background:#e8590c"><div class="sh-num">5</div><div class="sh-name">深度依赖</div><div class="sh-time">第 1-3 月</div></div>
+      <div class="stage-header" style="background:#c2255c"><div class="sh-num">6</div><div class="sh-name">反馈共建</div><div class="sh-time">持续</div></div>
+    </div>
+
+    <!-- Persona: Dr. Chen (R&D) -->
+    <div class="persona-journey" id="journey-rd">
+      <!-- Persona Label -->
+      <div class="journey-grid">
+        <div class="journey-row-label" style="background:#0c8599;color:#fff;border-radius:var(--radius-sm) 0 0 0">🧬 Dr. Chen<br><span style="font-size:10px;opacity:.8;text-transform:none">研发科学家</span></div>
+        <div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+
+      <!-- Row: 用户行为 -->
+      <div class="journey-grid">
+        <div class="journey-row-label">👤 用户行为</div>
+        <div class="journey-cell row-actions">
+          <span class="cell-icon">🔍</span>
+          <span class="cell-text">在内部 wiki 看到 Copilot 入口，好奇点击</span>
+        </div>
+        <div class="journey-cell row-actions">
+          <span class="cell-icon">📋</span>
+          <span class="cell-text">阅读使用指南，浏览可访问的文档列表</span>
+        </div>
+        <div class="journey-cell row-actions">
+          <span class="cell-icon">💬</span>
+          <span class="cell-text">尝试提问「ICH Q9 质量风险管理原则」</span>
+        </div>
+        <div class="journey-cell row-actions">
+          <span class="cell-icon">🔄</span>
+          <span class="cell-text">每日查询 SOP 和实验记录，替代部分文献检索</span>
+        </div>
+        <div class="journey-cell row-actions">
+          <span class="cell-icon">⚡</span>
+          <span class="cell-text">用 Copilot 做跨文档对比、批量查询、结果导出</span>
+        </div>
+        <div class="journey-cell row-actions">
+          <span class="cell-icon">📤</span>
+          <span class="cell-text">提交反馈：标注错误引用、建议补充文档</span>
+        </div>
+      </div>
+
+      <!-- Row: 触点 -->
+      <div class="journey-grid">
+        <div class="journey-row-label">📱 触点</div>
+        <div class="journey-cell">
+          <div class="touchpoint-list">
+            <div class="touchpoint">内部 Wiki 入口</div>
+            <div class="touchpoint">同事推荐</div>
+          </div>
+        </div>
+        <div class="journey-cell">
+          <div class="touchpoint-list">
+            <div class="touchpoint">登录页 (SSO)</div>
+            <div class="touchpoint">文档库侧边栏</div>
+            <div class="touchpoint">示例问题</div>
+          </div>
+        </div>
+        <div class="journey-cell">
+          <div class="touchpoint-list">
+            <div class="touchpoint">聊天界面</div>
+            <div class="touchpoint">意图路由提示</div>
+            <div class="touchpoint">引用来源面板</div>
+          </div>
+        </div>
+        <div class="journey-cell">
+          <div class="touchpoint-list">
+            <div class="touchpoint">Copilot 主界面</div>
+            <div class="touchpoint">文档权限提示</div>
+            <div class="touchpoint">转人工工单</div>
+          </div>
+        </div>
+        <div class="journey-cell">
+          <div class="touchpoint-list">
+            <div class="touchpoint">批量查询模式</div>
+            <div class="touchpoint">结果导出 (PDF)</div>
+            <div class="touchpoint">历史会话</div>
+          </div>
+        </div>
+        <div class="journey-cell">
+          <div class="touchpoint-list">
+            <div class="touchpoint">反馈表单</div>
+            <div class="touchpoint">引用纠错入口</div>
+            <div class="touchpoint">月度满意度调研</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row: 情绪 -->
+      <div class="journey-grid">
+        <div class="journey-row-label">😊 情绪曲线</div>
+        <div class="journey-cell row-emotion">
+          <div class="emotion-bar">
+            <span class="emotion-icon">😐</span>
+            <div class="emotion-track"><div class="emotion-fill" style="width:50%;background:var(--c-warning)"></div></div>
+          </div>
+          <span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">好奇但不确定</span>
+        </div>
+        <div class="journey-cell row-emotion">
+          <div class="emotion-bar">
+            <span class="emotion-icon">🙂</span>
+            <div class="emotion-track"><div class="emotion-fill" style="width:65%;background:var(--c-info)"></div></div>
+          </div>
+          <span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">界面清晰，有点期待</span>
+        </div>
+        <div class="journey-cell row-emotion">
+          <div class="emotion-bar">
+            <span class="emotion-icon">😍</span>
+            <div class="emotion-track"><div class="emotion-fill" style="width:90%;background:var(--c-success)"></div></div>
+          </div>
+          <span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">引用准确，惊喜</span>
+        </div>
+        <div class="journey-cell row-emotion">
+          <div class="emotion-bar">
+            <span class="emotion-icon">😀</span>
+            <div class="emotion-track"><div class="emotion-fill" style="width:85%;background:var(--c-success)"></div></div>
+          </div>
+          <span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">稳定依赖，偶尔遇拒答</span>
+        </div>
+        <div class="journey-cell row-emotion">
+          <div class="emotion-bar">
+            <span class="emotion-icon">🤩</span>
+            <div class="emotion-track"><div class="emotion-fill" style="width:95%;background:var(--c-success)"></div></div>
+          </div>
+          <span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">效率显著提升</span>
+        </div>
+        <div class="journey-cell row-emotion">
+          <div class="emotion-bar">
+            <span class="emotion-icon">🤝</span>
+            <div class="emotion-track"><div class="emotion-fill" style="width:88%;background:var(--c-info)"></div></div>
+          </div>
+          <span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">有参与感，期待改进</span>
+        </div>
+      </div>
+
+      <!-- Row: 痛点 -->
+      <div class="journey-grid">
+        <div class="journey-row-label">😣 痛点</div>
+        <div class="journey-cell row-pain">
+          <span class="cell-text">不确定 AI 能否准确回答专业问题</span>
+        </div>
+        <div class="journey-cell row-pain">
+          <span class="cell-text">文档列表太长，不知道从哪开始</span>
+        </div>
+        <div class="journey-cell row-pain">
+          <span class="cell-text">部分实验记录文档被权限限制</span>
+        </div>
+        <div class="journey-cell row-pain">
+          <span class="cell-text">低置信度拒答时感到困惑，需手动查文档</span>
+        </div>
+        <div class="journey-cell row-pain">
+          <span class="cell-text">复杂多文档查询偶尔遗漏关键信息</span>
+        </div>
+        <div class="journey-cell row-pain">
+          <span class="cell-text">反馈后改进周期较长，不确定是否被采纳</span>
+        </div>
+      </div>
+
+      <!-- Row: 机会 -->
+      <div class="journey-grid">
+        <div class="journey-row-label">💡 机会点</div>
+        <div class="journey-cell row-opp">
+          <span class="cell-tag" style="background:#e3fafc;color:#0c8599">引导</span>
+          <span class="cell-text">在 wiki 入口展示「3 个示例问答」预览效果</span>
+        </div>
+        <div class="journey-cell row-opp">
+          <span class="cell-tag" style="background:#e3fafc;color:#0c8599">推荐</span>
+          <span class="cell-text">根据角色自动推荐最常查询的文档</span>
+        </div>
+        <div class="journey-cell row-opp">
+          <span class="cell-tag" style="background:#e3fafc;color:#0c8599">透明</span>
+          <span class="cell-text">展示完整 RAG 流水线，建立信任</span>
+        </div>
+        <div class="journey-cell row-opp">
+          <span class="cell-tag" style="background:#e3fafc;color:#0c8599">兜底</span>
+          <span class="cell-text">拒答时一键转人工，附带相关文档链接</span>
+        </div>
+        <div class="journey-cell row-opp">
+          <span class="cell-tag" style="background:#e3fafc;color:#0c8599">增强</span>
+          <span class="cell-text">推出「跨文档对比」模式，自动整合多源信息</span>
+        </div>
+        <div class="journey-cell row-opp">
+          <span class="cell-tag" style="background:#e3fafc;color:#0c8599">闭环</span>
+          <span class="cell-text">反馈后 48h 内回复处理状态，采纳后通知</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persona: QA Lin (QA) - Hidden by default, toggle via JS -->
+    <div class="persona-journey" id="journey-qa" style="display:none">
+      <div class="journey-grid">
+        <div class="journey-row-label" style="background:#d9480f;color:#fff;border-radius:var(--radius-sm) 0 0 0">🔍 QA Lin<br><span style="font-size:10px;opacity:.8;text-transform:none">质量保证专员</span></div>
+        <div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">👤 用户行为</div>
+        <div class="journey-cell row-actions"><span class="cell-icon">📢</span><span class="cell-text">部门主管在质量会议上推荐使用</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">🔐</span><span class="cell-text">用 QA 账号登录，查看 GMP 和 SOP 权限范围</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">💬</span><span class="cell-text">提问「GMP Annex 1 洁净区环境监测频率」</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">📋</span><span class="cell-text">查询偏差管理 SOP，准备 CAPA 报告引用</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">📊</span><span class="cell-text">用 Copilot 生成审计准备用的法规摘要</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">✏️</span><span class="cell-text">标注引用错误，建议增加内审 SOP 文档</span></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">📱 触点</div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">部门会议演示</div><div class="touchpoint">同事推荐</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">SSO 登录</div><div class="touchpoint">权限提示页</div><div class="touchpoint">GMP 文档列表</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">聊天界面</div><div class="touchpoint">重排结果展示</div><div class="touchpoint">引用追溯</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">SOP 查询模式</div><div class="touchpoint">引用导出</div><div class="touchpoint">权限过滤提示</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">批量摘要生成</div><div class="touchpoint">审计日志</div><div class="touchpoint">导出 PDF</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">引用纠错</div><div class="touchpoint">文档补充请求</div></div></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">😊 情绪曲线</div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">😐</span><div class="emotion-track"><div class="emotion-fill" style="width:45%;background:var(--c-warning)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">持观望态度</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🙂</span><div class="emotion-track"><div class="emotion-fill" style="width:60%;background:var(--c-info)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">权限清晰，放心</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">😊</span><div class="emotion-track"><div class="emotion-fill" style="width:80%;background:var(--c-success)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">法规查询准确</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">😀</span><div class="emotion-track"><div class="emotion-fill" style="width:88%;background:var(--c-success)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">引用可直接用于报告</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🤩</span><div class="emotion-track"><div class="emotion-fill" style="width:92%;background:var(--c-success)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">审计准备效率翻倍</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🤝</span><div class="emotion-track"><div class="emotion-fill" style="width:85%;background:var(--c-info)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">希望贡献专业反馈</span></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">😣 痛点</div>
+        <div class="journey-cell row-pain"><span class="cell-text">担心 AI 生成内容不合规</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">不确定引用是否为最新版法规</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">部分 SOP 未被索引</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">引用导出格式不支持审计报告模板</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">批量查询结果需要人工校验</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">法规版本更新后旧引用未自动失效</span></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">💡 机会点</div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#fff4e6;color:#d9480f">合规</span><span class="cell-text">展示审计追踪日志，证明合规性</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#fff4e6;color:#d9480f">版本</span><span class="cell-text">引用时标注法规版本和生效日期</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#fff4e6;color:#d9480f">补充</span><span class="cell-text">提供「文档补充请求」一键入口</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#fff4e6;color:#d9480f">格式</span><span class="cell-text">支持审计报告模板的引用导出格式</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#fff4e6;color:#d9480f">校验</span><span class="cell-text">批量结果附带「置信度+引用校验」标记</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#fff4e6;color:#d9480f">更新</span><span class="cell-text">法规版本变更时自动通知并标记旧引用</span></div>
+      </div>
+    </div>
+
+    <!-- Persona: Reg Wang (Regulatory) -->
+    <div class="persona-journey" id="journey-reg" style="display:none">
+      <div class="journey-grid">
+        <div class="journey-row-label" style="background:#1971c2;color:#fff;border-radius:var(--radius-sm) 0 0 0">📋 Reg Wang<br><span style="font-size:10px;opacity:.8;text-transform:none">法规事务专员</span></div>
+        <div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">👤 用户行为</div>
+        <div class="journey-cell row-actions"><span class="cell-icon">🌐</span><span class="cell-text">在搜索 ICH 指南时发现 Copilot 可查询公开法规</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">📖</span><span class="cell-text">浏览法规角色可访问的 ICH/FDA/CTD 文档库</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">💬</span><span class="cell-text">提问「FDA 对稳定性试验的长期条件要求」</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">📑</span><span class="cell-text">查询 CTD 格式要求，准备注册申报材料</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">🔗</span><span class="cell-text">用 Copilot 跨 ICH/FDA/EudraLex 多源对比法规要求</span></div>
+        <div class="journey-cell row-actions"><span class="cell-icon">📣</span><span class="cell-text">建议增加更多地区的法规指南（PMDA、EMA）</span></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">📱 触点</div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">内部搜索</div><div class="touchpoint">合规部门通知</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">SSO 登录</div><div class="touchpoint">法规文档库</div><div class="touchpoint">权限矩阵</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">聊天界面</div><div class="touchpoint">多源引用面板</div><div class="touchpoint">原文链接</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">CTD 结构化查询</div><div class="touchpoint">引用导出</div><div class="touchpoint">法规版本标签</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">跨源对比模式</div><div class="touchpoint">差异高亮</div><div class="touchpoint">摘要导出</div></div></div>
+        <div class="journey-cell"><div class="touchpoint-list"><div class="touchpoint">文档补充请求</div><div class="touchpoint">功能建议箱</div></div></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">😊 情绪曲线</div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🤔</span><div class="emotion-track"><div class="emotion-fill" style="width:40%;background:var(--c-warning)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">不确定是否比手动查更好</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🙂</span><div class="emotion-track"><div class="emotion-fill" style="width:70%;background:var(--c-info)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">文档库覆盖全面</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">😊</span><div class="emotion-track"><div class="emotion-fill" style="width:85%;background:var(--c-success)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">多源引用很实用</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">😀</span><div class="emotion-track"><div class="emotion-fill" style="width:87%;background:var(--c-success)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">申报准备效率提升</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🤩</span><div class="emotion-track"><div class="emotion-fill" style="width:93%;background:var(--c-success)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">跨源对比节省大量时间</span></div>
+        <div class="journey-cell row-emotion"><div class="emotion-bar"><span class="emotion-icon">🤝</span><div class="emotion-track"><div class="emotion-fill" style="width:82%;background:var(--c-info)"></div></div></div><span class="cell-text" style="font-size:11px;color:var(--c-text-muted)">希望持续扩展法规源</span></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">😣 痛点</div>
+        <div class="journey-cell row-pain"><span class="cell-text">不确定法规是否为最新版本</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">注册申报文档权限被严格限制</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">部分 FDA Guidance 未被索引</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">CTD 模块间交叉引用不够智能</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">跨源对比时法规术语翻译不一致</span></div>
+        <div class="journey-cell row-pain"><span class="cell-text">缺少 PMDA（日本）和 EMA（欧洲）指南</span></div>
+      </div>
+      <div class="journey-grid">
+        <div class="journey-row-label">💡 机会点</div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#e7f5ff;color:#1971c2">版本</span><span class="cell-text">引用标注法规版本号和生效日期</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#e7f5ff;color:#1971c2">权限</span><span class="cell-text">法规角色专属的高级权限申请流程</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#e7f5ff;color:#1971c2">覆盖</span><span class="cell-text">定期同步 FDA Guidance 更新</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#e7f5ff;color:#1971c2">智能</span><span class="cell-text">CTD 模块感知检索，自动关联交叉引用</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#e7f5ff;color:#1971c2">术语</span><span class="cell-text">建立法规术语中英对照词典</span></div>
+        <div class="journey-cell row-opp"><span class="cell-tag" style="background:#e7f5ff;color:#1971c2">扩展</span><span class="cell-text">接入 PMDA、EMA 等多地区法规源</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-section">
+    <div class="summary-card" style="border-top-color:#0c8599">
+      <h4>🧬 研发科学家关键洞察</h4>
+      <ul>
+        <li>首次成功体验是关键转化点，引用准确率决定信任</li>
+        <li>日常使用中最依赖 SOP 和实验记录查询</li>
+        <li>低置信度拒答需要更友好的兜底引导</li>
+        <li>跨文档对比是高阶用户的核心需求</li>
+      </ul>
+    </div>
+    <div class="summary-card" style="border-top-color:#d9480f">
+      <h4>🔍 质量保证专员关键洞察</h4>
+      <ul>
+        <li>合规审计追踪是信任前提，需 21 CFR Part 11 对齐</li>
+        <li>引用版本和生效日期对法规查询至关重要</li>
+        <li>引用导出需适配审计报告模板</li>
+        <li>法规版本更新需自动通知并标记旧引用</li>
+      </ul>
+    </div>
+    <div class="summary-card" style="border-top-color:#1971c2">
+      <h4>📋 法规事务专员关键洞察</h4>
+      <ul>
+        <li>多源法规对比是核心价值场景</li>
+        <li>CTD 模块间交叉引用需更智能</li>
+        <li>法规术语中英一致性影响答案质量</li>
+        <li>多地区法规源（PMDA/EMA）扩展是长期需求</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-strip">
+    <div class="kpi-item"><div class="kpi-val">6</div><div class="kpi-lbl">旅程阶段</div></div>
+    <div class="kpi-item"><div class="kpi-val">3</div><div class="kpi-lbl">用户角色</div></div>
+    <div class="kpi-item"><div class="kpi-val">21</div><div class="kpi-lbl">关键触点</div></div>
+    <div class="kpi-item"><div class="kpi-val">18</div><div class="kpi-lbl">痛点识别</div></div>
+    <div class="kpi-item"><div class="kpi-val">18</div><div class="kpi-lbl">机会点</div></div>
+    <div class="kpi-item"><div class="kpi-val">88%</div><div class="kpi-lbl">目标满意度</div></div>
+  </div>
+
+  <footer class="page-footer">
+    PharmaRAG 用户旅程图 · 版本 1.0 · 2024 · 点击上方角色卡片切换查看不同角色的旅程
+  </footer>
+</div>
+
+<script>
+(function() {
+  "use strict";
+  var personaCards = document.querySelectorAll('.persona-card');
+  var journeys = {
+    rd: document.getElementById('journey-rd'),
+    qa: document.getElementById('journey-qa'),
+    reg: document.getElementById('journey-reg')
+  };
+  personaCards.forEach(function(card) {
+    card.addEventListener('click', function() {
+      var persona = card.getAttribute('data-persona');
+      personaCards.forEach(function(c) { c.classList.remove('active'); });
+      card.classList.add('active');
+      Object.keys(journeys).forEach(function(key) {
+        if (journeys[key]) journeys[key].style.display = key === persona ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

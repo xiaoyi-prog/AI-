@@ -1,0 +1,40 @@
+{
+  "schema": "topic_tracking.contract.v2",
+  "setup_token": "setup_fa5753f8",
+  "topic": "AI 行业动态",
+  "tracking_dir": "/Coze/Drive/扣子/热点资讯追踪/AI 行业动态",
+  "created_at": "2026-11-18T13:32:24.791899",
+  "updated_at": "2026-11-18T13:33:22.495695",
+  "topic_analysis": {
+    "definition": "追踪 AI Agent、大模型和 AI 应用领域的新产品发布、重要功能更新、模型发布及公司合作动态",
+    "in_scope": [
+      "AI Agent 产品发布或重大功能更新",
+      "大语言模型或多模态模型新版本发布",
+      "AI 应用产品上线或重要功能迭代",
+      "AI 领域重大公司合作、收购、融资事件",
+      "AI 基础设施和开发工具链重要更新"
+    ],
+    "out_of_scope": [
+      "一般性 AI 评论或观点文章",
+      "学术论文除非为突破性成果",
+      "小版本 bugfix 或 UI 微调",
+      "未经证实的传闻或泄露信息",
+      "非 AI 领域的科技公司新闻"
+    ],
+    "authority_policy": "科技行业动态需要可靠来源验证，采用 high 标准。可接受来源包括公司官方公告页面、官方博客或社交账号、主流科技媒体如 TechCrunch、The Verge、36氪、量子位等。每个事件组至少需要 3 个不同来源域名的 support_urls。"
+  },
+  "authority_requirement": "high",
+  "support_url_min_count": 3,
+  "focus_directions": [
+    "AI Agent 产品发布与更新",
+    "大模型新版本发布",
+    "AI 应用产品动态",
+    "AI 公司合作与融资"
+  ],
+  "user_preference": "筛选最重要的内容，用不超过 3 点概括主要变化，附上公开信息来源链接。不要重复已经通知过的内容。不预测或分析趋势，只客观陈述事实。",
+  "frequency": "每 4 小时",
+  "source_policy": {
+    "default": "authority_requirement=high 时，每个事件组至少需要 3 个不同来源域名的支撑 URL；不确定来源或时间时不要提交事件。"
+  },
+  "empty_silent": true
+}

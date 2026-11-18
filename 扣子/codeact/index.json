@@ -1,0 +1,11 @@
+[
+  {
+    "name": "market_summary.py",
+    "path": "./codeact/scripts/market_summary.py",
+    "description": "每个工作日汇总沪深300、恒生指数、标普500最近一个完整交易日的收盘点位、涨跌幅和值得关注的市场事件，输出简洁市场摘要",
+    "params": {
+      "result_mode": "display_only"
+    },
+    "status": "active"
+  }
+]
